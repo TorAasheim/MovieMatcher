@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Movie Matcher</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="welcome_message">Find movies you both want to watch</string>
+</resources>
