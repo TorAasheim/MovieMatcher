@@ -23,8 +23,6 @@
   - _Requirements: 10.1, 10.2, 10.3_
 
 - [x] 4. Implement TMDB API client and movie repository
-
-
   - Create TmdbApi interface with Retrofit annotations for trending, search, details, and providers endpoints
   - Implement TmdbRepository with movie data fetching and caching
   - Create DTOs for TMDB API responses with Moshi annotations
@@ -32,7 +30,7 @@
   - Write unit tests for API client and repository
   - _Requirements: 2.1, 6.1, 6.2_
 
-- [ ] 5. Create room management and pairing system
+- [x] 5. Create room management and pairing system
   - Implement RoomRepository with Firestore integration for room creation and joining
   - Create InviteCodeGenerator for unique room codes
   - Implement PairingViewModel for room creation and joining flow
