@@ -1,37 +1,41 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "movie-matcher-placeholder",
-    "storage_bucket": "movie-matcher-placeholder.appspot.com"
+    "project_number": "927802701407",
+    "project_id": "moviematcher-36660",
+    "storage_bucket": "moviematcher-36660.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+        "mobilesdk_app_id": "1:927802701407:android:550c54bc20c1487a358dea",
         "android_client_info": {
           "package_name": "com.moviematcher.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
+          "client_id": "927802701407-n47k0893spd5tncuh015e45t440ntk8f.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.moviematcher.app",
-            "certificate_hash": "abcdef1234567890abcdef1234567890abcdef12"
+            "certificate_hash": "a156c8c3117ca242d64b9d5b4942253238535479"
           }
+        },
+        {
+          "client_id": "927802701407-0fi2klkfrfujrhfi3n0f0lkd4v04o5u6.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567"
+          "current_key": "AIzaSyDc0xDptdy89z7PzI2BEGz9WcAlZWRr5W4"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
+              "client_id": "927802701407-0fi2klkfrfujrhfi3n0f0lkd4v04o5u6.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
