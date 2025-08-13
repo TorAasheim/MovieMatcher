@@ -228,7 +228,7 @@ class RoomRepository @Inject constructor(
     /**
      * Generates a unique invite code that doesn't already exist
      */
-    private suspend fun generateUniqueInviteCode(transaction: Transaction): String {
+    private fun generateUniqueInviteCode(transaction: Transaction): String {
         repeat(MAX_CODE_GENERATION_ATTEMPTS) {
             val code = InviteCodeGenerator.generateCode()
             val existingDoc = transaction.get(

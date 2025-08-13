@@ -110,7 +110,7 @@ fun AuthScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = authState.message,
+                            text = (authState as AuthState.Error).message,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             textAlign = TextAlign.Center
@@ -130,7 +130,7 @@ fun AuthScreen(
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Welcome, ${authState.user.displayName}!",
+                    text = "Welcome, ${(authState as AuthState.Authenticated).user.displayName}!",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
