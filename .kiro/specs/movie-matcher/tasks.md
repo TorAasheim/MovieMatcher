@@ -22,7 +22,7 @@
   - Write unit tests for authentication flow
   - _Requirements: 10.1, 10.2, 10.3_
 
-- [ ] 4. Implement TMDB API client and movie repository
+- [x] 4. Implement TMDB API client and movie repository
 
 
   - Create TmdbApi interface with Retrofit annotations for trending, search, details, and providers endpoints
