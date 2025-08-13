@@ -7,7 +7,12 @@
   - Set up BuildConfig for TMDB API key from local.properties
   - _Requirements: 10.1, 10.2_
 
-- [ ] 2. Implement core data models and interfaces
+- [x] 2. Implement core data models and interfaces
+
+
+
+
+
   - Create data classes for User, Room, Movie, Swipe, Match, and StreamingProvider
   - Define repository interfaces for MovieRepository, SwipeRepository, MatchRepository
   - Implement SwipeDecision enum and ContentType enum
