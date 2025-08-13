@@ -3,4 +3,7 @@
     <string name="app_name">Movie Matcher</string>
     <string name="sign_in_with_google">Sign in with Google</string>
     <string name="welcome_message">Find movies you both want to watch</string>
+    
+    <!-- Firebase Web Client ID for Google Sign-In -->
+    <string name="default_web_client_id">927802701407-0fi2klkfrfujrhfi3n0f0lkd4v04o5u6.apps.googleusercontent.com</string>
 </resources>

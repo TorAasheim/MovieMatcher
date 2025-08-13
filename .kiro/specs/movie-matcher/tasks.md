@@ -8,18 +8,13 @@
   - _Requirements: 10.1, 10.2_
 
 - [x] 2. Implement core data models and interfaces
-
-
-
-
-
   - Create data classes for User, Room, Movie, Swipe, Match, and StreamingProvider
   - Define repository interfaces for MovieRepository, SwipeRepository, MatchRepository
   - Implement SwipeDecision enum and ContentType enum
   - Create UserPreferences data class with filtering options
   - _Requirements: 4.1, 4.2, 2.2, 2.3, 3.3_
 
-- [ ] 3. Set up Firebase configuration and authentication
+- [x] 3. Set up Firebase configuration and authentication
   - Add google-services.json to project
   - Implement GoogleAuthManager for Google Sign-In integration
   - Create UserRepository with Firestore integration for user profiles
@@ -28,6 +23,8 @@
   - _Requirements: 10.1, 10.2, 10.3_
 
 - [ ] 4. Implement TMDB API client and movie repository
+
+
   - Create TmdbApi interface with Retrofit annotations for trending, search, details, and providers endpoints
   - Implement TmdbRepository with movie data fetching and caching
   - Create DTOs for TMDB API responses with Moshi annotations
