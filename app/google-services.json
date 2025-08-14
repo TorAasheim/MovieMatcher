@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "927802701407-ehmv2nfa6e07s82qpdq1q3pj09iolo17.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.moviematcher.app",
+            "certificate_hash": "7f29ca01b530be8108fb99070512c1affc9fb2ab"
+          }
+        },
+        {
           "client_id": "927802701407-n47k0893spd5tncuh015e45t440ntk8f.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

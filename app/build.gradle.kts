@@ -135,7 +135,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.7.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("kotlin-test:kotlin-test:1.8.10")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.10")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     

@@ -38,7 +38,7 @@
   - Write unit tests for room management logic
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 6. Build swipe functionality and real-time synchronization
+- [x] 6. Build swipe functionality and real-time synchronization
   - Implement SwipeRepository with Firestore real-time listeners
   - Create SwipeViewModel for managing swipe decisions and partner synchronization
   - Add swipe decision recording with timestamp
