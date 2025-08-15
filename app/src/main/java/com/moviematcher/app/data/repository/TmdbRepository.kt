@@ -37,6 +37,42 @@ class TmdbRepository @Inject constructor(
         }
     }
     
+    /**
+     * Discover movies with filtering options
+     */
+    suspend fun discoverMovies(
+        page: Int,
+        genreIds: Set<Int>? = null,
+        yearRange: IntRange? = null,
+        minRating: Double? = null,
+        providerIds: Set<Int>? = null
+    ): List<Movie> = withContext(Dispatchers.IO) {
+        try {
+            val genreString = genreIds?.joinToString(",")
+            val releaseDateGte = yearRange?.first?.let { "$it-01-01" }
+            val releaseDateLte = yearRange?.last?.let { "$it-12-31" }
+            val providerString = providerIds?.joinToString("|")
+            
+            val response = tmdbApi.discoverMovies(
+                apiKey = apiKey,
+                page = page,
+                withGenres = genreString,
+                releaseDateGte = releaseDateGte,
+                releaseDateLte = releaseDateLte,
+                voteAverageGte = minRating,
+                withWatchProviders = providerString
+            )
+            
+            val genreMap = getGenreMap()
+            
+            response.results.map { movieDto ->
+                TmdbMapper.mapToMovie(movieDto, genreMap)
+            }
+        } catch (e: Exception) {
+            throw MovieRepositoryException("Failed to discover movies", e)
+        }
+    }
+    
     override suspend fun searchMovies(query: String, page: Int): List<Movie> = withContext(Dispatchers.IO) {
         try {
             val response = tmdbApi.searchMovies(apiKey, query, page)

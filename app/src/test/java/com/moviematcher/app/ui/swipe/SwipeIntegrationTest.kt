@@ -1,13 +1,21 @@
 package com.moviematcher.app.ui.swipe
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.moviematcher.app.data.engine.MovieRecommendationEngine
+import com.moviematcher.app.data.model.ContentType
+import com.moviematcher.app.data.model.Movie
 import com.moviematcher.app.data.model.Swipe
 import com.moviematcher.app.data.model.SwipeDecision
+import com.moviematcher.app.data.model.UserPreferences
 import com.moviematcher.app.data.repository.SwipeRepository
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -31,14 +39,44 @@ class SwipeIntegrationTest {
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private lateinit var fakeSwipeRepository: FakeSwipeRepository
+    private lateinit var recommendationEngine: MovieRecommendationEngine
     private lateinit var viewModel: SwipeViewModel
     private val testDispatcher = StandardTestDispatcher()
+
+    private val testPreferences = UserPreferences(
+        selectedGenres = emptySet(),
+        yearRange = 2020..2024,
+        minRating = 0.0,
+        selectedProviders = emptySet(),
+        availabilityStrict = false,
+        contentType = ContentType.MOVIE
+    )
+
+    private val testMovie = Movie(
+        id = 1L,
+        title = "Test Movie",
+        overview = "A test movie",
+        posterPath = "/test.jpg",
+        releaseDate = "2023-01-01",
+        voteAverage = 7.5,
+        genres = emptyList(),
+        runtime = 120
+    )
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeSwipeRepository = FakeSwipeRepository()
-        viewModel = SwipeViewModel(fakeSwipeRepository)
+        recommendationEngine = mockk()
+        
+        // Setup default mock behavior
+        every { recommendationEngine.movieQueue } returns MutableStateFlow(emptyList())
+        every { recommendationEngine.isLoading } returns MutableStateFlow(false)
+        every { recommendationEngine.error } returns MutableStateFlow(null)
+        coEvery { recommendationEngine.initializeQueue(any()) } returns Unit
+        coEvery { recommendationEngine.getNextMovie() } returns testMovie
+        
+        viewModel = SwipeViewModel(fakeSwipeRepository, recommendationEngine)
     }
 
     @Test
@@ -50,7 +88,7 @@ class SwipeIntegrationTest {
         val titleId = 12345L
 
         // Act - Initialize session
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         advanceUntilIdle()
 
         // Act - Record a swipe
@@ -88,7 +126,7 @@ class SwipeIntegrationTest {
         )
 
         // Act - Initialize session first
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         advanceUntilIdle()
 
         // Act - Simulate partner swipe after initialization
@@ -110,7 +148,7 @@ class SwipeIntegrationTest {
         val partnerId = "partner456"
         val titleId = 12345L
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         viewModel.recordSwipe(titleId, SwipeDecision.LIKE)
         advanceUntilIdle()
 

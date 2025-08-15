@@ -17,7 +17,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class SwipeRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val matchRepository: MatchRepository
 ) : SwipeRepository {
 
     companion object {
@@ -46,6 +47,17 @@ class SwipeRepositoryImpl @Inject constructor(
             .document(documentId)
             .set(swipeData)
             .await()
+        
+        // Check for potential match if this was a LIKE
+        if (swipe.decision == SwipeDecision.LIKE) {
+            try {
+                matchRepository.createMatch(roomId, swipe.titleId)
+            } catch (e: Exception) {
+                // Log error but don't fail the swipe operation
+                // In a real app, you'd use proper logging
+                println("Failed to check for match: ${e.message}")
+            }
+        }
     }
 
     override fun observePartnerSwipes(roomId: String, partnerId: String): Flow<Swipe> = callbackFlow {

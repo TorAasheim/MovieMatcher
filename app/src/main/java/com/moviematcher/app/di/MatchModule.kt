@@ -2,8 +2,8 @@ package com.moviematcher.app.di
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.moviematcher.app.data.repository.MatchRepository
-import com.moviematcher.app.data.repository.SwipeRepository
-import com.moviematcher.app.data.repository.SwipeRepositoryImpl
+import com.moviematcher.app.data.repository.MatchRepositoryImpl
+import com.moviematcher.app.notification.NotificationService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,14 +12,14 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object SwipeModule {
+object MatchModule {
     
     @Provides
     @Singleton
-    fun provideSwipeRepository(
+    fun provideMatchRepository(
         firestore: FirebaseFirestore,
-        matchRepository: MatchRepository
-    ): SwipeRepository {
-        return SwipeRepositoryImpl(firestore, matchRepository)
+        notificationService: NotificationService
+    ): MatchRepository {
+        return MatchRepositoryImpl(firestore, notificationService)
     }
 }

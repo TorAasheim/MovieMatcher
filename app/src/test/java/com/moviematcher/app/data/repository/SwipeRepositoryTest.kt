@@ -41,7 +41,8 @@ class SwipeRepositoryTest {
         every { roomDocument.collection("swipes") } returns swipesCollection
         every { swipesCollection.document(any()) } returns swipeDocument
 
-        swipeRepository = SwipeRepositoryImpl(firestore)
+        val matchRepository = mockk<MatchRepository>()
+        swipeRepository = SwipeRepositoryImpl(firestore, matchRepository)
     }
 
     @Test

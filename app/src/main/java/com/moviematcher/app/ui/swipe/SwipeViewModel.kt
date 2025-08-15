@@ -2,8 +2,11 @@ package com.moviematcher.app.ui.swipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.moviematcher.app.data.engine.MovieRecommendationEngine
+import com.moviematcher.app.data.model.Movie
 import com.moviematcher.app.data.model.Swipe
 import com.moviematcher.app.data.model.SwipeDecision
+import com.moviematcher.app.data.model.UserPreferences
 import com.moviematcher.app.data.repository.SwipeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +21,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SwipeViewModel @Inject constructor(
-    private val swipeRepository: SwipeRepository
+    private val swipeRepository: SwipeRepository,
+    private val recommendationEngine: MovieRecommendationEngine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SwipeUiState())
@@ -27,6 +31,14 @@ class SwipeViewModel @Inject constructor(
     private val _partnerSwipes = MutableStateFlow<List<Swipe>>(emptyList())
     val partnerSwipes: StateFlow<List<Swipe>> = _partnerSwipes.asStateFlow()
 
+    private val _currentMovie = MutableStateFlow<Movie?>(null)
+    val currentMovie: StateFlow<Movie?> = _currentMovie.asStateFlow()
+
+    // Expose recommendation engine states
+    val movieQueue = recommendationEngine.movieQueue
+    val isLoadingRecommendations = recommendationEngine.isLoading
+    val recommendationError = recommendationEngine.error
+
     private var currentRoomId: String? = null
     private var currentUserId: String? = null
     private var partnerId: String? = null
@@ -34,10 +46,22 @@ class SwipeViewModel @Inject constructor(
     /**
      * Initialize the swipe session with room and user information
      */
-    fun initializeSwipeSession(roomId: String, userId: String, partnerUserId: String) {
+    fun initializeSwipeSession(roomId: String, userId: String, partnerUserId: String, preferences: UserPreferences) {
         currentRoomId = roomId
         currentUserId = userId
         partnerId = partnerUserId
+        
+        // Initialize recommendation engine with preferences
+        viewModelScope.launch {
+            try {
+                recommendationEngine.initializeQueue(preferences)
+                loadNextMovie()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to initialize recommendations: ${e.message}"
+                )
+            }
+        }
         
         // Start observing partner swipes
         observePartnerSwipes()
@@ -63,11 +87,14 @@ class SwipeViewModel @Inject constructor(
 
                 swipeRepository.recordSwipe(roomId, swipe)
                 
-                // Update last swipe for undo functionality
+                // Update last swipe for undo functionality and load next movie
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     lastSwipe = swipe
                 )
+                
+                // Load the next movie from the recommendation queue
+                loadNextMovie()
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -154,6 +181,58 @@ class SwipeViewModel @Inject constructor(
      * Check if undo is available
      */
     fun canUndo(): Boolean = _uiState.value.lastSwipe != null && !_uiState.value.isLoading
+
+    /**
+     * Load the next movie from the recommendation queue
+     */
+    private suspend fun loadNextMovie() {
+        try {
+            val nextMovie = recommendationEngine.getNextMovie()
+            _currentMovie.value = nextMovie
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                error = "Failed to load next movie: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Update user preferences and refresh recommendations
+     */
+    fun updatePreferences(preferences: UserPreferences) {
+        viewModelScope.launch {
+            try {
+                recommendationEngine.updatePreferences(preferences)
+                loadNextMovie()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to update preferences: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Manually refresh the recommendation queue
+     */
+    fun refreshRecommendations() {
+        viewModelScope.launch {
+            try {
+                loadNextMovie()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to refresh recommendations: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Clear recommendation engine errors
+     */
+    fun clearRecommendationError() {
+        recommendationEngine.clearError()
+    }
 }
 
 /**

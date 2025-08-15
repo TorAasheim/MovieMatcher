@@ -1,8 +1,12 @@
 package com.moviematcher.app.ui.swipe
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.moviematcher.app.data.engine.MovieRecommendationEngine
+import com.moviematcher.app.data.model.ContentType
+import com.moviematcher.app.data.model.Movie
 import com.moviematcher.app.data.model.Swipe
 import com.moviematcher.app.data.model.SwipeDecision
+import com.moviematcher.app.data.model.UserPreferences
 import com.moviematcher.app.data.repository.SwipeRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -10,6 +14,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -31,18 +36,48 @@ class SwipeViewModelTest {
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private lateinit var swipeRepository: SwipeRepository
+    private lateinit var recommendationEngine: MovieRecommendationEngine
     private lateinit var viewModel: SwipeViewModel
     private val testDispatcher = StandardTestDispatcher()
+
+    private val testPreferences = UserPreferences(
+        selectedGenres = emptySet(),
+        yearRange = 2020..2024,
+        minRating = 0.0,
+        selectedProviders = emptySet(),
+        availabilityStrict = false,
+        contentType = ContentType.MOVIE
+    )
+
+    private val testMovie = Movie(
+        id = 1L,
+        title = "Test Movie",
+        overview = "A test movie",
+        posterPath = "/test.jpg",
+        releaseDate = "2023-01-01",
+        voteAverage = 7.5,
+        genres = emptyList(),
+        runtime = 120
+    )
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         swipeRepository = mockk()
-        viewModel = SwipeViewModel(swipeRepository)
+        recommendationEngine = mockk()
+        
+        // Setup default mock behavior
+        every { recommendationEngine.movieQueue } returns MutableStateFlow(emptyList())
+        every { recommendationEngine.isLoading } returns MutableStateFlow(false)
+        every { recommendationEngine.error } returns MutableStateFlow(null)
+        coEvery { recommendationEngine.initializeQueue(any()) } returns Unit
+        coEvery { recommendationEngine.getNextMovie() } returns testMovie
+        
+        viewModel = SwipeViewModel(swipeRepository, recommendationEngine)
     }
 
     @Test
-    fun `initializeSwipeSession should start observing partner swipes`() = runTest {
+    fun `initializeSwipeSession should start observing partner swipes and initialize recommendations`() = runTest {
         // Arrange
         val roomId = "room123"
         val userId = "user123"
@@ -57,10 +92,13 @@ class SwipeViewModelTest {
         every { swipeRepository.observePartnerSwipes(roomId, partnerId) } returns flowOf(partnerSwipe)
 
         // Act
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         advanceUntilIdle()
 
         // Assert
+        coVerify { recommendationEngine.initializeQueue(testPreferences) }
+        coVerify { recommendationEngine.getNextMovie() }
+        
         val partnerSwipes = viewModel.partnerSwipes.value
         assertEquals(1, partnerSwipes.size)
         assertEquals(partnerSwipe, partnerSwipes.first())
@@ -68,7 +106,7 @@ class SwipeViewModelTest {
     }
 
     @Test
-    fun `recordSwipe should save swipe and update UI state`() = runTest {
+    fun `recordSwipe should save swipe, update UI state, and load next movie`() = runTest {
         // Arrange
         val roomId = "room123"
         val userId = "user123"
@@ -79,7 +117,8 @@ class SwipeViewModelTest {
         every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
         coEvery { swipeRepository.recordSwipe(any(), any()) } returns Unit
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
 
         // Act
         viewModel.recordSwipe(titleId, decision)
@@ -87,6 +126,7 @@ class SwipeViewModelTest {
 
         // Assert
         coVerify { swipeRepository.recordSwipe(roomId, any()) }
+        coVerify(exactly = 2) { recommendationEngine.getNextMovie() } // Once for init, once for swipe
         
         val uiState = viewModel.uiState.value
         assertFalse(uiState.isLoading)
@@ -110,7 +150,8 @@ class SwipeViewModelTest {
         every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
         coEvery { swipeRepository.recordSwipe(any(), any()) } throws Exception(errorMessage)
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
 
         // Act
         viewModel.recordSwipe(titleId, decision)
@@ -136,7 +177,8 @@ class SwipeViewModelTest {
         coEvery { swipeRepository.recordSwipe(any(), any()) } returns Unit
         coEvery { swipeRepository.undoLastSwipe(any(), any()) } returns Unit
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
 
         // First record a swipe
         viewModel.recordSwipe(titleId, decision)
@@ -172,7 +214,8 @@ class SwipeViewModelTest {
         coEvery { swipeRepository.recordSwipe(any(), any()) } returns Unit
         coEvery { swipeRepository.undoLastSwipe(any(), any()) } throws Exception(errorMessage)
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
 
         // First record a swipe
         viewModel.recordSwipe(titleId, decision)
@@ -202,7 +245,8 @@ class SwipeViewModelTest {
         every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
         coEvery { swipeRepository.recordSwipe(any(), any()) } returns Unit
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
 
         // Act
         viewModel.recordSwipe(titleId, decision)
@@ -221,7 +265,7 @@ class SwipeViewModelTest {
 
         every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         advanceUntilIdle()
 
         // Assert
@@ -238,7 +282,7 @@ class SwipeViewModelTest {
         every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
         coEvery { swipeRepository.recordSwipe(any(), any()) } throws Exception("Test error")
 
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         viewModel.recordSwipe(12345L, SwipeDecision.LIKE)
         advanceUntilIdle()
 
@@ -270,12 +314,55 @@ class SwipeViewModelTest {
             flowOf(partnerSwipe, partnerSwipe)
 
         // Act
-        viewModel.initializeSwipeSession(roomId, userId, partnerId)
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
         advanceUntilIdle()
 
         // Assert - should only have one swipe, not two
         val partnerSwipes = viewModel.partnerSwipes.value
         assertEquals(1, partnerSwipes.size)
         assertEquals(partnerSwipe, partnerSwipes.first())
+    }
+
+    @Test
+    fun `updatePreferences should update recommendation engine and load next movie`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val userId = "user123"
+        val partnerId = "partner456"
+        val newPreferences = testPreferences.copy(minRating = 8.0)
+
+        every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
+        coEvery { recommendationEngine.updatePreferences(any()) } returns Unit
+
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
+
+        // Act
+        viewModel.updatePreferences(newPreferences)
+        advanceUntilIdle()
+
+        // Assert
+        coVerify { recommendationEngine.updatePreferences(newPreferences) }
+        coVerify(atLeast = 2) { recommendationEngine.getNextMovie() }
+    }
+
+    @Test
+    fun `refreshRecommendations should load next movie`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val userId = "user123"
+        val partnerId = "partner456"
+
+        every { swipeRepository.observePartnerSwipes(any(), any()) } returns flowOf()
+
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
+
+        // Act
+        viewModel.refreshRecommendations()
+        advanceUntilIdle()
+
+        // Assert
+        coVerify(atLeast = 2) { recommendationEngine.getNextMovie() }
     }
 }

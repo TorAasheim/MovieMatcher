@@ -21,7 +21,36 @@ class MovieMatcherMessagingService : FirebaseMessagingService() {
     
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
-        // TODO: Handle FCM messages (will be implemented in later tasks)
+        
+        // Handle different types of notifications
+        val notificationType = remoteMessage.data["type"]
+        when (notificationType) {
+            "match" -> {
+                val title = remoteMessage.data["title"] ?: "New Match!"
+                val body = remoteMessage.data["body"] ?: "You have a new movie match!"
+                val movieId = remoteMessage.data["movieId"]
+                
+                // Create and show notification
+                showMatchNotification(title, body, movieId)
+            }
+            else -> {
+                // Handle other notification types or show generic notification
+                val title = remoteMessage.notification?.title ?: "Movie Matcher"
+                val body = remoteMessage.notification?.body ?: "You have a new notification"
+                showGenericNotification(title, body)
+            }
+        }
+    }
+    
+    private fun showMatchNotification(title: String, body: String, movieId: String?) {
+        // In a real implementation, this would create an Android notification
+        // with proper intent to open the matches screen
+        println("Match Notification: $title - $body (Movie ID: $movieId)")
+    }
+    
+    private fun showGenericNotification(title: String, body: String) {
+        // In a real implementation, this would create a generic Android notification
+        println("Generic Notification: $title - $body")
     }
 
     override fun onNewToken(token: String) {
