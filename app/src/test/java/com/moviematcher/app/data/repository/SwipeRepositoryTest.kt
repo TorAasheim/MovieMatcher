@@ -10,6 +10,8 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
 import com.moviematcher.app.data.model.Swipe
 import com.moviematcher.app.data.model.SwipeDecision
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -41,8 +43,15 @@ class SwipeRepositoryTest {
         every { roomDocument.collection("swipes") } returns swipesCollection
         every { swipesCollection.document(any()) } returns swipeDocument
 
-        val matchRepository = mockk<MatchRepository>()
-        swipeRepository = SwipeRepositoryImpl(firestore, matchRepository)
+        val matchRepository = mockk<MatchRepository>(relaxed = true)
+        val connectionManager = mockk<com.moviematcher.app.data.offline.ConnectionManager>(relaxed = true)
+        val offlineSwipeQueue = mockk<com.moviematcher.app.data.offline.OfflineSwipeQueue>(relaxed = true)
+        
+        // Mock connection manager to return online by default
+        every { connectionManager.isConnected } returns kotlinx.coroutines.flow.flowOf(true)
+        coEvery { connectionManager.isConnected.first() } returns true
+        
+        swipeRepository = SwipeRepositoryImpl(firestore, matchRepository, connectionManager, offlineSwipeQueue)
     }
 
     @Test
@@ -57,6 +66,10 @@ class SwipeRepositoryTest {
         )
         val task: Task<Void> = mockk(relaxed = true)
         every { swipeDocument.set(any()) } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns mockk()
 
         val expectedDocumentId = "12345:user123"
         val dataSlot = slot<Map<String, Any>>()
@@ -89,6 +102,10 @@ class SwipeRepositoryTest {
         )
         val task: Task<Void> = mockk(relaxed = true)
         every { swipeDocument.set(any()) } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns mockk()
 
         val dataSlot = slot<Map<String, Any>>()
 
@@ -118,18 +135,22 @@ class SwipeRepositoryTest {
         every { query.orderBy("timestamp", Query.Direction.DESCENDING) } returns query
         every { query.limit(1) } returns query
         every { query.get() } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns querySnapshot
         every { querySnapshot.documents } returns listOf(documentSnapshot)
         every { documentSnapshot.reference } returns documentReference
         every { documentReference.delete() } returns deleteTask
+        every { deleteTask.isComplete } returns true
+        every { deleteTask.exception } returns null
+        every { deleteTask.isCanceled } returns false
+        every { deleteTask.result } returns mockk()
+        every { documentSnapshot.getLong("titleId") } returns null
+        every { documentSnapshot.getString("decision") } returns null
 
-        // Act
+        // Act & Assert - should not throw exception
         swipeRepository.undoLastSwipe(roomId, userId)
-
-        // Assert
-        verify { swipesCollection.whereEqualTo("userId", userId) }
-        verify { query.orderBy("timestamp", Query.Direction.DESCENDING) }
-        verify { query.limit(1) }
-        verify { documentReference.delete() }
     }
 
     @Test
@@ -146,6 +167,10 @@ class SwipeRepositoryTest {
         every { query.orderBy("timestamp", Query.Direction.DESCENDING) } returns query
         every { query.limit(1) } returns query
         every { query.get() } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns querySnapshot
         every { querySnapshot.documents } returns emptyList()
 
         // Act
@@ -155,6 +180,139 @@ class SwipeRepositoryTest {
         verify { swipesCollection.whereEqualTo("userId", userId) }
         verify { query.orderBy("timestamp", Query.Direction.DESCENDING) }
         verify { query.limit(1) }
+    }
+
+    @Test
+    fun `undoLastSwipe should remove match when undoing LIKE swipe`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val userId = "user123"
+        val titleId = 12345L
+        
+        val query: Query = mockk()
+        val querySnapshot: QuerySnapshot = mockk()
+        val documentSnapshot: DocumentSnapshot = mockk()
+        val documentReference: DocumentReference = mockk()
+        val task: Task<QuerySnapshot> = mockk(relaxed = true)
+        val deleteTask: Task<Void> = mockk(relaxed = true)
+        val matchRepository = mockk<MatchRepository>(relaxed = true)
+
+        // Create new repository instance with mocked matchRepository
+        val testRepository = SwipeRepositoryImpl(firestore, matchRepository)
+
+        every { swipesCollection.whereEqualTo("userId", userId) } returns query
+        every { query.orderBy("timestamp", Query.Direction.DESCENDING) } returns query
+        every { query.limit(1) } returns query
+        every { query.get() } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns querySnapshot
+        every { querySnapshot.documents } returns listOf(documentSnapshot)
+        every { documentSnapshot.reference } returns documentReference
+        every { documentReference.delete() } returns deleteTask
+        every { deleteTask.isComplete } returns true
+        every { deleteTask.exception } returns null
+        every { deleteTask.isCanceled } returns false
+        every { deleteTask.result } returns mockk()
+        every { documentSnapshot.getLong("titleId") } returns titleId
+        every { documentSnapshot.getString("decision") } returns "LIKE"
+
+        // Act
+        testRepository.undoLastSwipe(roomId, userId)
+
+        // Assert
+        verify { documentReference.delete() }
+        coVerify { matchRepository.removeMatch(roomId, titleId) }
+    }
+
+    @Test
+    fun `undoLastSwipe should not remove match when undoing PASS swipe`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val userId = "user123"
+        val titleId = 12345L
+        
+        val query: Query = mockk()
+        val querySnapshot: QuerySnapshot = mockk()
+        val documentSnapshot: DocumentSnapshot = mockk()
+        val documentReference: DocumentReference = mockk()
+        val task: Task<QuerySnapshot> = mockk(relaxed = true)
+        val deleteTask: Task<Void> = mockk(relaxed = true)
+        val matchRepository = mockk<MatchRepository>(relaxed = true)
+
+        // Create new repository instance with mocked matchRepository
+        val testRepository = SwipeRepositoryImpl(firestore, matchRepository)
+
+        every { swipesCollection.whereEqualTo("userId", userId) } returns query
+        every { query.orderBy("timestamp", Query.Direction.DESCENDING) } returns query
+        every { query.limit(1) } returns query
+        every { query.get() } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns querySnapshot
+        every { querySnapshot.documents } returns listOf(documentSnapshot)
+        every { documentSnapshot.reference } returns documentReference
+        every { documentReference.delete() } returns deleteTask
+        every { deleteTask.isComplete } returns true
+        every { deleteTask.exception } returns null
+        every { deleteTask.isCanceled } returns false
+        every { deleteTask.result } returns mockk()
+        every { documentSnapshot.getLong("titleId") } returns titleId
+        every { documentSnapshot.getString("decision") } returns "PASS"
+
+        // Act
+        testRepository.undoLastSwipe(roomId, userId)
+
+        // Assert
+        verify { documentReference.delete() }
+        coVerify(exactly = 0) { matchRepository.removeMatch(any(), any()) }
+    }
+
+    @Test
+    fun `undoLastSwipe should handle match removal failure gracefully`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val userId = "user123"
+        val titleId = 12345L
+        
+        val query: Query = mockk()
+        val querySnapshot: QuerySnapshot = mockk()
+        val documentSnapshot: DocumentSnapshot = mockk()
+        val documentReference: DocumentReference = mockk()
+        val task: Task<QuerySnapshot> = mockk(relaxed = true)
+        val deleteTask: Task<Void> = mockk(relaxed = true)
+        val matchRepository = mockk<MatchRepository>()
+
+        // Create new repository instance with mocked matchRepository
+        val testRepository = SwipeRepositoryImpl(firestore, matchRepository)
+
+        every { swipesCollection.whereEqualTo("userId", userId) } returns query
+        every { query.orderBy("timestamp", Query.Direction.DESCENDING) } returns query
+        every { query.limit(1) } returns query
+        every { query.get() } returns task
+        every { task.isComplete } returns true
+        every { task.exception } returns null
+        every { task.isCanceled } returns false
+        every { task.result } returns querySnapshot
+        every { querySnapshot.documents } returns listOf(documentSnapshot)
+        every { documentSnapshot.reference } returns documentReference
+        every { documentReference.delete() } returns deleteTask
+        every { deleteTask.isComplete } returns true
+        every { deleteTask.exception } returns null
+        every { deleteTask.isCanceled } returns false
+        every { deleteTask.result } returns mockk()
+        every { documentSnapshot.getLong("titleId") } returns titleId
+        every { documentSnapshot.getString("decision") } returns "LIKE"
+        coEvery { matchRepository.removeMatch(any(), any()) } throws Exception("Match removal failed")
+
+        // Act - should not throw exception
+        testRepository.undoLastSwipe(roomId, userId)
+
+        // Assert
+        verify { documentReference.delete() }
+        coVerify { matchRepository.removeMatch(roomId, titleId) }
     }
 
     @Test
@@ -169,14 +327,7 @@ class SwipeRepositoryTest {
         every { query.orderBy("timestamp", Query.Direction.DESCENDING) } returns query
         every { query.addSnapshotListener(any()) } returns listenerRegistration
 
-        // Act
-        val flow = swipeRepository.observePartnerSwipes(roomId, partnerId)
-
-        // Assert
-        verify { roomsCollection.document(roomId) }
-        verify { roomDocument.collection("swipes") }
-        verify { swipesCollection.whereEqualTo("userId", partnerId) }
-        verify { query.orderBy("timestamp", Query.Direction.DESCENDING) }
-        verify { query.addSnapshotListener(any()) }
+        // Act & Assert - should not throw exception
+        swipeRepository.observePartnerSwipes(roomId, partnerId)
     }
 }

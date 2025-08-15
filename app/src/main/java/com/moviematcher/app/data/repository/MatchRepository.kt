@@ -21,4 +21,9 @@ interface MatchRepository {
      * Mark a match as watched with optional notes
      */
     suspend fun markAsWatched(roomId: String, movieId: Long, notes: String)
+    
+    /**
+     * Remove a match when undo affects an existing match
+     */
+    suspend fun removeMatch(roomId: String, movieId: Long)
 }

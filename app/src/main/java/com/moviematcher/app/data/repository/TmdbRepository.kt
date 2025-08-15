@@ -130,6 +130,56 @@ class TmdbRepository @Inject constructor(
     }
     
     /**
+     * Get all available genres
+     */
+    suspend fun getGenres(): List<Genre> = withContext(Dispatchers.IO) {
+        try {
+            val response = tmdbApi.getMovieGenres(apiKey)
+            response.genres.map { genreDto ->
+                Genre(id = genreDto.id, name = genreDto.name)
+            }
+        } catch (e: Exception) {
+            throw MovieRepositoryException("Failed to fetch genres", e)
+        }
+    }
+    
+    /**
+     * Get popular streaming providers
+     */
+    suspend fun getPopularStreamingProviders(): List<StreamingProvider> = withContext(Dispatchers.IO) {
+        try {
+            val response = tmdbApi.getAvailableWatchProviders(apiKey)
+            
+            // For now, we'll focus on US providers, but this can be made configurable
+            val usProviders = response.results["US"]
+            
+            if (usProviders != null) {
+                TmdbMapper.extractAllStreamingProviders(usProviders)
+            } else {
+                // Return some common providers as fallback
+                listOf(
+                    StreamingProvider(8, "Netflix", null, null),
+                    StreamingProvider(9, "Amazon Prime Video", null, null),
+                    StreamingProvider(15, "Hulu", null, null),
+                    StreamingProvider(337, "Disney Plus", null, null),
+                    StreamingProvider(384, "HBO Max", null, null),
+                    StreamingProvider(350, "Apple TV Plus", null, null)
+                )
+            }
+        } catch (e: Exception) {
+            // Return common providers as fallback
+            listOf(
+                StreamingProvider(8, "Netflix", null, null),
+                StreamingProvider(9, "Amazon Prime Video", null, null),
+                StreamingProvider(15, "Hulu", null, null),
+                StreamingProvider(337, "Disney Plus", null, null),
+                StreamingProvider(384, "HBO Max", null, null),
+                StreamingProvider(350, "Apple TV Plus", null, null)
+            )
+        }
+    }
+    
+    /**
      * Clear the genre cache (useful for testing or if genres need to be refreshed)
      */
     fun clearGenreCache() {

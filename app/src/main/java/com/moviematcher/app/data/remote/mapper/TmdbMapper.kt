@@ -87,4 +87,12 @@ object TmdbMapper {
         
         return providers.distinctBy { it.id } // Remove duplicates
     }
+    
+    /**
+     * Extract all available streaming providers from a watch providers region
+     * This includes all types of providers (flatrate, rent, buy)
+     */
+    fun extractAllStreamingProviders(region: TmdbWatchProvidersRegion): List<StreamingProvider> {
+        return extractStreamingProviders(region)
+    }
 }

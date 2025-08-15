@@ -166,6 +166,38 @@ class SwipeIntegrationTest {
         assertEquals(1, fakeSwipeRepository.undoCallCount)
     }
 
+    @Test
+    fun `undo functionality should handle match removal correctly`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val userId = "user123"
+        val partnerId = "partner456"
+        val titleId = 12345L
+
+        // Record a LIKE swipe
+        viewModel.initializeSwipeSession(roomId, userId, partnerId, testPreferences)
+        advanceUntilIdle()
+
+        viewModel.recordSwipe(titleId, SwipeDecision.LIKE)
+        advanceUntilIdle()
+
+        // Verify swipe was recorded and undo is available
+        assertTrue(viewModel.canUndo())
+        assertEquals(1, fakeSwipeRepository.recordedSwipes.size)
+        assertEquals(SwipeDecision.LIKE, fakeSwipeRepository.recordedSwipes[0].decision)
+
+        // Act - Undo the LIKE swipe
+        viewModel.undoLastSwipe()
+        advanceUntilIdle()
+
+        // Assert - Swipe was undone and repository's undo method was called
+        assertFalse(viewModel.canUndo())
+        assertNull(viewModel.uiState.value.lastSwipe)
+        assertEquals(1, fakeSwipeRepository.undoCallCount)
+        // The fake repository removes the swipe from the list
+        assertEquals(0, fakeSwipeRepository.recordedSwipes.size)
+    }
+
     /**
      * Fake implementation of SwipeRepository for testing
      */

@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -72,6 +73,8 @@ fun SwipeCard(
     movie: Movie,
     streamingProviders: List<StreamingProvider> = emptyList(),
     onSwipe: (SwipeDecision) -> Unit,
+    onUndo: (() -> Unit)? = null,
+    canUndo: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -310,8 +313,24 @@ fun SwipeCard(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp, vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = if (canUndo) Arrangement.SpaceEvenly else Arrangement.SpaceEvenly
         ) {
+            // Undo button (only show if undo is available)
+            if (canUndo && onUndo != null) {
+                FloatingActionButton(
+                    onClick = onUndo,
+                    modifier = Modifier.size(48.dp),
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Undo",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
             // Pass button
             FloatingActionButton(
                 onClick = { onSwipe(SwipeDecision.PASS) },
@@ -413,7 +432,11 @@ fun SwipeCardPreview() {
             streamingProviders = sampleProviders,
             onSwipe = { decision ->
                 // Preview - no action
-            }
+            },
+            onUndo = {
+                // Preview - no action
+            },
+            canUndo = true
         )
     }
 }

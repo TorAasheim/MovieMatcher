@@ -80,4 +80,14 @@ interface TmdbApi {
         @Query("with_watch_providers") withWatchProviders: String? = null,
         @Query("watch_region") watchRegion: String = "US"
     ): TmdbMoviesResponse
+    
+    /**
+     * Get available watch providers by region
+     */
+    @GET("watch/providers/movie")
+    suspend fun getAvailableWatchProviders(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("watch_region") watchRegion: String = "US"
+    ): TmdbWatchProvidersResponse
 }

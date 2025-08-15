@@ -127,4 +127,13 @@ class MatchRepositoryImpl @Inject constructor(
 
         matchRef.update(updateData).await()
     }
+
+    override suspend fun removeMatch(roomId: String, movieId: Long) {
+        val matchRef = firestore.collection(ROOMS_COLLECTION)
+            .document(roomId)
+            .collection(MATCHES_COLLECTION)
+            .document(movieId.toString())
+
+        matchRef.delete().await()
+    }
 }

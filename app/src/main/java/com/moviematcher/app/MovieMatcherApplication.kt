@@ -1,7 +1,16 @@
 package com.moviematcher.app
 
 import android.app.Application
+import coil.ImageLoader
+import coil.ImageLoaderFactory
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class MovieMatcherApplication : Application()
+class MovieMatcherApplication : Application(), ImageLoaderFactory {
+    
+    @Inject
+    lateinit var imageLoader: ImageLoader
+    
+    override fun newImageLoader(): ImageLoader = imageLoader
+}

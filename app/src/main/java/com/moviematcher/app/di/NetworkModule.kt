@@ -1,5 +1,10 @@
 package com.moviematcher.app.di
 
+import android.content.Context
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import coil.request.CachePolicy
 import com.moviematcher.app.data.remote.api.TmdbApi
 import com.moviematcher.app.data.repository.MovieRepository
 import com.moviematcher.app.data.repository.TmdbRepository
@@ -9,6 +14,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -67,6 +73,28 @@ abstract class NetworkModule {
         @Singleton
         fun provideTmdbApi(retrofit: Retrofit): TmdbApi {
             return retrofit.create(TmdbApi::class.java)
+        }
+        
+        @Provides
+        @Singleton
+        fun provideImageLoader(@ApplicationContext context: Context): ImageLoader {
+            return ImageLoader.Builder(context)
+                .memoryCache {
+                    MemoryCache.Builder(context)
+                        .maxSizePercent(0.25) // Use 25% of available memory
+                        .build()
+                }
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(context.cacheDir.resolve("image_cache"))
+                        .maxSizeBytes(50 * 1024 * 1024) // 50MB disk cache
+                        .build()
+                }
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .networkCachePolicy(CachePolicy.ENABLED)
+                .respectCacheHeaders(false) // Always cache images regardless of headers
+                .build()
         }
     }
 }

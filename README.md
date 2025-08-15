@@ -25,9 +25,15 @@ A Tinder-style Android app for couples to discover movies they both want to watc
    - Enable Authentication with Google Sign-In
    - Enable Firestore Database
    - Enable Cloud Messaging
+   - Enable Cloud Functions
    - Download the `google-services.json` file and replace the placeholder in `app/google-services.json`
 
-3. **Build the Project**
+3. **Cloud Functions Setup**
+   - Install Firebase CLI: `npm install -g firebase-tools`
+   - Login to Firebase: `firebase login`
+   - Deploy functions: `./deploy-functions.ps1` (Windows) or `./deploy-functions.sh` (Linux/Mac)
+
+4. **Build the Project**
    ```bash
    ./gradlew build
    ```
@@ -43,11 +49,19 @@ app/
 │   └── notification/                     # FCM messaging service
 ├── build.gradle.kts                     # App-level dependencies
 └── google-services.json                 # Firebase configuration
+functions/
+├── src/
+│   ├── index.ts                          # Cloud Functions (match notifications)
+│   └── test-helpers.ts                   # Testing utilities
+├── package.json                          # Node.js dependencies
+└── README.md                             # Functions documentation
+firebase.json                             # Firebase project configuration
+firestore.rules                           # Firestore security rules
 ```
 
 ## Dependencies
 
-- **Firebase**: Authentication, Firestore, Cloud Messaging
+- **Firebase**: Authentication, Firestore, Cloud Messaging, Cloud Functions
 - **Jetpack Compose**: Modern UI toolkit
 - **Material 3**: Design system with orange primary color
 - **Hilt**: Dependency injection

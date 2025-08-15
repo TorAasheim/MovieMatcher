@@ -47,11 +47,6 @@
   - _Requirements: 2.2, 2.3, 3.1, 3.2_
 
 - [x] 7. Implement matching system with notifications
-
-
-
-
-
   - Create MatchRepository for match creation and management
   - Implement match detection logic when both users like the same movie
   - Add Firestore transaction-based match creation to prevent duplicates
@@ -61,10 +56,6 @@
 -
 
 - [x] 8. Create swipe UI with Tinder-style cards
-
-
-
-
   - Implement SwipeCard Composable with movie poster, title, year, rating display
   - Add drag gesture detection for left/right swipe actions
   - Create card animation with rotation and translation effects
@@ -80,15 +71,16 @@
   - Write unit tests for recommendation logic and filtering
   - _Requirements: 2.5, 4.1, 4.2, 4.3_
 
-- [ ] 10. Implement undo functionality
+- [x] 10. Implement undo functionality
   - Add last swipe tracking in SwipeViewModel
   - Create undo method that deletes swipe record from Firestore
   - Implement match removal when undo affects existing match
   - Add UI button for undo with proper state management
   - Write unit tests for undo logic and edge cases
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
+-
 
-- [ ] 11. Create matches screen and management
+- [x] 11. Create matches screen and management
   - Implement MatchViewModel for displaying and managing matches
   - Create matches list UI showing movie details and streaming providers
   - Add mark as watched functionality with notes support
@@ -96,44 +88,61 @@
   - Write unit tests for match management
   - _Requirements: 3.4, 6.3, 6.4, 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 12. Build preferences and settings system
+
+- [x] 12. Build preferences and settings system
   - Create PreferencesRepository for storing user filtering preferences
   - Implement SettingsViewModel for preference management
   - Build settings UI for genre selection, year range, rating, and providers
   - Add availability strict toggle functionality
   - Write unit tests for preferences logic
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
+-
 
-- [ ] 13. Implement tonight's pick suggestion algorithm
+- [x] 13. Implement tonight's pick suggestion algorithm
+
+
   - Create suggestion algorithm that ranks matches by rating and release date
   - Add availability filtering based on selected providers and strict mode
   - Implement random tie-breaking for equal-rated movies
   - Create UI for displaying suggested pick with provider links
   - Write unit tests for suggestion algorithm
   - _Requirements: 7.1, 7.2, 7.3, 7.4_
+-
 
-- [ ] 14. Set up Firebase Cloud Functions for notifications
+- [x] 14. Set up Firebase Cloud Functions for notifications
   - Create Cloud Function triggered on match creation
   - Implement FCM message sending to both users when match occurs
   - Add proper error handling and logging for notification delivery
   - Configure function deployment and testing
   - _Requirements: 3.2_
 
-- [ ] 15. Implement data retention and cleanup
+- [x] 15. Implement data retention and cleanup
+
+
+
+
+
   - Create scheduled Cloud Function for 90-day data cleanup
   - Add manual "clear my swipes" functionality in settings
   - Implement cleanup logic that preserves watched matches with notes
   - Add proper error handling and logging for cleanup operations
   - _Requirements: 9.1, 9.2, 9.3, 9.4_
+-
 
-- [ ] 16. Create navigation and main app structure
+- [x] 16. Create navigation and main app structure
+
+
+
   - Set up Navigation Compose with authentication, pairing, swipe, matches, and settings screens
   - Implement main activity with proper theme and navigation handling
   - Create bottom navigation or tab structure for main screens
   - Add deep linking support for room invites
   - _Requirements: 1.2, 10.4_
 
-- [ ] 17. Implement offline support and caching
+- [-] 17. Implement offline support and caching
+
+
+
   - Enable Firestore offline persistence for local data caching
   - Add image caching configuration with Coil
   - Implement swipe queuing for offline scenarios
@@ -142,21 +151,32 @@
   - _Requirements: 2.5, 3.1_
 
 - [ ] 18. Add comprehensive error handling
+
+
+
+
   - Implement AppError sealed class and ErrorHandler
   - Add retry logic for network failures with exponential backoff
   - Create user-friendly error messages and recovery options
   - Add proper error logging and crash reporting
-  - Write unit tests for error handling scenarios
+  - Write unit tests for error handlin
+
+g scenarios
   - _Requirements: 2.5, 4.4, 6.4, 7.4_
 
 - [ ] 19. Create Material 3 theme with orange primary color
+
   - Implement WatchPartyTheme with orange primary color and dark mode
-  - Configure proper color schemes for light and dark themes
-  - Add consistent typography and component styling
+  - Configure proper color s
+
+chemes for light and dark themes
+  - Add consistent typograph
+y and component styling
   - Ensure accessibility compliance with proper contrast ratios
   - _Requirements: 2.1, 6.1_
 
 - [ ] 20. Write integration tests and end-to-end scenarios
+
   - Create integration tests for Firebase real-time synchronization
   - Add two-device testing scenarios for complete matching flow
   - Implement tests for push notification delivery and handling

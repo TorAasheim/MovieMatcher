@@ -82,6 +82,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-functions-ktx")
     
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:20.7.0")
@@ -129,6 +130,9 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    
+    // DataStore for offline persistence
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
     
     // Testing
     testImplementation("junit:junit:4.13.2")

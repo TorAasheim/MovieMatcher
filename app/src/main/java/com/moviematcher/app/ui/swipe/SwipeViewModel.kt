@@ -7,22 +7,29 @@ import com.moviematcher.app.data.model.Movie
 import com.moviematcher.app.data.model.Swipe
 import com.moviematcher.app.data.model.SwipeDecision
 import com.moviematcher.app.data.model.UserPreferences
+import com.moviematcher.app.data.offline.ConnectionManager
+import com.moviematcher.app.data.offline.OfflineSwipeQueue
+import com.moviematcher.app.data.offline.OfflineSyncManager
 import com.moviematcher.app.data.repository.SwipeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel for managing swipe decisions and partner synchronization
+ * ViewModel for managing swipe decisions and partner synchronization with offline support
  */
 @HiltViewModel
 class SwipeViewModel @Inject constructor(
     private val swipeRepository: SwipeRepository,
-    private val recommendationEngine: MovieRecommendationEngine
+    private val recommendationEngine: MovieRecommendationEngine,
+    private val connectionManager: ConnectionManager,
+    private val offlineSwipeQueue: OfflineSwipeQueue,
+    private val offlineSyncManager: OfflineSyncManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SwipeUiState())
@@ -38,6 +45,10 @@ class SwipeViewModel @Inject constructor(
     val movieQueue = recommendationEngine.movieQueue
     val isLoadingRecommendations = recommendationEngine.isLoading
     val recommendationError = recommendationEngine.error
+    
+    // Expose offline states
+    val isConnected = connectionManager.isConnected
+    val pendingSwipesCount = offlineSwipeQueue.queueSize
 
     private var currentRoomId: String? = null
     private var currentUserId: String? = null
@@ -68,7 +79,7 @@ class SwipeViewModel @Inject constructor(
     }
 
     /**
-     * Record a swipe decision for the current user
+     * Record a swipe decision for the current user (with offline support)
      */
     fun recordSwipe(titleId: Long, decision: SwipeDecision) {
         val roomId = currentRoomId ?: return
@@ -85,6 +96,7 @@ class SwipeViewModel @Inject constructor(
                     timestamp = System.currentTimeMillis()
                 )
 
+                // Record swipe (will handle offline queueing automatically)
                 swipeRepository.recordSwipe(roomId, swipe)
                 
                 // Update last swipe for undo functionality and load next movie
@@ -97,10 +109,27 @@ class SwipeViewModel @Inject constructor(
                 loadNextMovie()
                 
             } catch (e: Exception) {
+                // Even if recording fails, we still update UI state since swipe is queued offline
+                val isConnected = connectionManager.isCurrentlyConnected()
+                val errorMessage = if (!isConnected) {
+                    "Swipe saved offline - will sync when connected"
+                } else {
+                    "Failed to record swipe: ${e.message}"
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to record swipe: ${e.message}"
+                    error = errorMessage,
+                    lastSwipe = Swipe(
+                        titleId = titleId,
+                        userId = userId,
+                        decision = decision,
+                        timestamp = System.currentTimeMillis()
+                    )
                 )
+                
+                // Still load next movie to continue swiping
+                loadNextMovie()
             }
         }
     }
@@ -233,10 +262,44 @@ class SwipeViewModel @Inject constructor(
     fun clearRecommendationError() {
         recommendationEngine.clearError()
     }
+    
+    /**
+     * Force sync offline data
+     */
+    fun forceSyncOfflineData() {
+        viewModelScope.launch {
+            try {
+                val result = offlineSyncManager.forceSyncOfflineData()
+                when (result) {
+                    is com.moviematcher.app.data.offline.SyncResult.Success -> {
+                        if (result.syncedCount > 0) {
+                            _uiState.value = _uiState.value.copy(
+                                error = "Synced ${result.syncedCount} offline swipes"
+                            )
+                        }
+                    }
+                    is com.moviematcher.app.data.offline.SyncResult.PartialFailure -> {
+                        _uiState.value = _uiState.value.copy(
+                            error = "Synced ${result.successCount} swipes, ${result.failedCount} failed"
+                        )
+                    }
+                    is com.moviematcher.app.data.offline.SyncResult.NoConnection -> {
+                        _uiState.value = _uiState.value.copy(
+                            error = "No connection available for sync"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to sync offline data: ${e.message}"
+                )
+            }
+        }
+    }
 }
 
 /**
- * UI state for the swipe screen
+ * UI state for the swipe screen with offline support
  */
 data class SwipeUiState(
     val isLoading: Boolean = false,

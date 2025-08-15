@@ -5,20 +5,25 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.moviematcher.app.data.model.Swipe
 import com.moviematcher.app.data.model.SwipeDecision
+import com.moviematcher.app.data.offline.ConnectionManager
+import com.moviematcher.app.data.offline.OfflineSwipeQueue
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementation of SwipeRepository using Firebase Firestore
+ * Implementation of SwipeRepository using Firebase Firestore with offline support
  */
 @Singleton
 class SwipeRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val matchRepository: MatchRepository
+    private val matchRepository: MatchRepository,
+    private val connectionManager: ConnectionManager,
+    private val offlineSwipeQueue: OfflineSwipeQueue
 ) : SwipeRepository {
 
     companion object {
@@ -31,6 +36,28 @@ class SwipeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun recordSwipe(roomId: String, swipe: Swipe) {
+        // Check if we're online
+        val isConnected = connectionManager.isConnected.first()
+        
+        if (isConnected) {
+            try {
+                // Try to record swipe online
+                recordSwipeOnline(roomId, swipe)
+            } catch (e: Exception) {
+                // If online recording fails, queue for offline sync
+                offlineSwipeQueue.queueSwipe(roomId, swipe)
+                throw e
+            }
+        } else {
+            // Queue swipe for offline sync
+            offlineSwipeQueue.queueSwipe(roomId, swipe)
+        }
+    }
+    
+    /**
+     * Record swipe directly to Firestore (online operation)
+     */
+    private suspend fun recordSwipeOnline(roomId: String, swipe: Swipe) {
         val swipeData = mapOf(
             FIELD_TITLE_ID to swipe.titleId,
             FIELD_USER_ID to swipe.userId,
@@ -107,9 +134,24 @@ class SwipeRepositoryImpl @Inject constructor(
             .get()
             .await()
 
-        // Delete the most recent swipe if it exists
+        // Delete the most recent swipe if it exists and handle match removal
         querySnapshot.documents.firstOrNull()?.let { document ->
+            val titleId = document.getLong(FIELD_TITLE_ID) ?: return
+            val decision = document.getString(FIELD_DECISION)
+            
+            // Delete the swipe
             document.reference.delete().await()
+            
+            // If this was a LIKE swipe, check if we need to remove a match
+            if (decision == SwipeDecision.LIKE.name) {
+                try {
+                    matchRepository.removeMatch(roomId, titleId)
+                } catch (e: Exception) {
+                    // Log error but don't fail the undo operation
+                    // In a real app, you'd use proper logging
+                    println("Failed to remove match during undo: ${e.message}")
+                }
+            }
         }
     }
 }

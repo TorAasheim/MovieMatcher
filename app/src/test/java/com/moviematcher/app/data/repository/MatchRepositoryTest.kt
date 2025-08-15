@@ -196,6 +196,26 @@ class MatchRepositoryTest {
     }
 
     @Test
+    fun `removeMatch should delete match document`() = runTest {
+        // Arrange
+        val roomId = "room123"
+        val movieId = 456L
+        
+        val deleteTask = mockk<Task<Void>>()
+        every { matchRef.delete() } returns deleteTask
+        every { deleteTask.isComplete } returns true
+        every { deleteTask.exception } returns null
+        every { deleteTask.isCanceled } returns false
+        every { deleteTask.result } returns mockk()
+        
+        // Act
+        matchRepository.removeMatch(roomId, movieId)
+        
+        // Assert
+        verify { matchRef.delete() }
+    }
+
+    @Test
     fun `observeMatches should return flow of matches`() = runTest {
         // Arrange
         val roomId = "room123"
